@@ -9,11 +9,15 @@
     "web": "expo start --web"
   },
   "dependencies": {
-    "@react-navigation/native-stack": "^7.15.1",
+    "@react-navigation/bottom-tabs": "^6.5.20",
+    "@react-navigation/native": "^6.1.9",
+    "@react-navigation/native-stack": "^6.9.12",
     "expo": "~54.0.33",
     "expo-status-bar": "~3.0.9",
-    "react": "19.1.1",
-    "react-native": "0.82.0"
+    "react": "18.2.0",
+    "react-native": "0.71.8",
+    "react-native-safe-area-context": "4.5.0",
+    "react-native-screens": "~3.22.0"
   },
   "private": true
 }

@@ -1,4 +1,4 @@
-import { StatusBar } from 'expo-status-bar';
+/* import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View, ImageBackground, Button } from 'react-native';
 import React from 'react'
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -32,7 +32,7 @@ export default function App() {
         <>
       <NavigationContainer>
         <Stack.Navigator>
-          {/* Aca revisamos si autenticó y esas serían las vistas a las que puede acceder */}
+          {}
           {isAuthenticated ? (
             <>
               <Stack.Screen name="Home" component={Home} />
@@ -79,3 +79,45 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
 });
+*/
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { StatusBar } from 'expo-status-bar';
+
+// Importar las pantallas
+import HomeScreen from './src/screens/HomeScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
+import SettingsScreen from './src/screens/SettingsScreen';
+
+const Tab = createBottomTabNavigator();
+
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Tab.Navigator
+        screenOptions={{
+          tabBarActiveTintColor: '#2f95dc',
+          tabBarInactiveTintColor: 'gray',
+        }}
+      >
+        <Tab.Screen 
+          name="Home" 
+          component={HomeScreen} 
+          options={{ title: 'Inicio' }}
+        />
+        <Tab.Screen 
+          name="Profile" 
+          component={ProfileScreen} 
+          options={{ title: 'Perfil' }}
+        />
+        <Tab.Screen 
+          name="Settings" 
+          component={SettingsScreen} 
+          options={{ title: 'Ajustes' }}
+        />
+      </Tab.Navigator>
+      <StatusBar style="auto" />
+    </NavigationContainer>
+  );
+}
