@@ -49,7 +49,7 @@ const GameScreen = () => {
       Animated.timing(plate.animatedValue, {
         toValue: 1,
         duration: DURATION,
-        useNativeDriver: true,
+        useNativeDriver: false,
       }).start(() => {
         setPlates(currentPlates => currentPlates.filter(item => item.id !== id));
       });
@@ -76,12 +76,12 @@ const GameScreen = () => {
     const startX = plate.direction === 'left' ? -PLATE_SIZE : width + PLATE_SIZE;
     const endX = plate.direction === 'left' ? width + PLATE_SIZE : -PLATE_SIZE;
 
-    const translateX = plate.animatedValue.interpolate({
+    const left = plate.animatedValue.interpolate({
       inputRange: [0, 1],
       outputRange: [startX, endX],
     });
 
-    const translateY = plate.animatedValue.interpolate({
+    const top = plate.animatedValue.interpolate({
       inputRange: [0, 0.4, 0.7, 1],
       outputRange: [plate.startY, plate.startY - 140, plate.startY - 80, plate.startY],
     });
@@ -103,7 +103,9 @@ const GameScreen = () => {
           styles.plate,
           {
             opacity: hitOpacity,
-            transform: [{ translateX }, { translateY }, { scale: hitScale }],
+            left,
+            top,
+            transform: [{ scale: hitScale }],
           },
         ]}
       >
