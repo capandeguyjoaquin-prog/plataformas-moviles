@@ -87,7 +87,7 @@ import { StatusBar } from 'expo-status-bar';
 
 // Importar las pantallas
 import HomeScreen from './src/screens/HomeScreen';
-import ProfileScreen from './src/screens/ProfileScreen';
+import GameScreen from './src/screens/GameScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 
 const Tab = createBottomTabNavigator();
@@ -107,9 +107,9 @@ export default function App() {
           options={{ title: 'Inicio' }}
         />
         <Tab.Screen 
-          name="Profile" 
-          component={ProfileScreen} 
-          options={{ title: 'Perfil' }}
+          name="Game" 
+          component={GameScreen} 
+          options={{ title: 'Juego' }}
         />
         <Tab.Screen 
           name="Settings" 

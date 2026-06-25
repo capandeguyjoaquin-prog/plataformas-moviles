@@ -1,12 +1,15 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { ImageBackground, Text, StyleSheet } from 'react-native';
 
 const HomeScreen = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Inicio</Text>
-      <Text>¡Bienvenido a la pantalla principal!</Text>
-    </View>
+    <ImageBackground
+      style={styles.container}
+      source={require('C:\\Users\\Alumno\\Downloads\\Nueva carpeta\\plataformas-moviles\\assets\\WhatsApp Image 2026-06-17 at 20.34.26.jpeg')}
+      resizeMode="stretch"
+    >
+     
+    </ImageBackground>
   );
 };
 
@@ -15,12 +18,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f0f4f7',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
+    color: '#fff',
+    textShadowRadius: 4,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#fff',
   },
 });
 
