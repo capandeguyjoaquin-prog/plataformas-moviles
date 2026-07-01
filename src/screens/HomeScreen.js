@@ -5,7 +5,7 @@ const HomeScreen = () => {
   return (
     <ImageBackground
       style={styles.container}
-      source={require('C:\\Users\\Alumno\\Downloads\\Nueva carpeta\\plataformas-moviles\\assets\\WhatsApp Image 2026-06-17 at 20.34.26.jpeg')}
+      source={require('../../assets/WhatsApp Image 2026-06-17 at 20.34.26.jpeg')}
       resizeMode="stretch"
     >
      

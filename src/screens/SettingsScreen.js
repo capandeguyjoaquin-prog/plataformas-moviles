@@ -1,12 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { ImageBackground, Text, StyleSheet} from 'react-native';
 
 const SettingsScreen = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Configuración</Text>
-      <Text>Aquí puedes ajustar tus preferencias.</Text>
-    </View>
+    
+    <ImageBackground
+          style={styles.container}
+          source={require('../../assets/fondomadera.jpeg')}
+          resizeMode="stretch"
+        ></ImageBackground>
   );
 };
 
@@ -15,7 +17,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fffbe6',
   },
   title: {
     fontSize: 24,
