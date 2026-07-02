@@ -11,15 +11,29 @@ import {
 
 const { width, height } = Dimensions.get('window');
 const PLATE_SIZE = 80;
-const SPAWN_INTERVAL = 1500;
-const DURATION = 5000;
+const INITIAL_SPAWN_INTERVAL = 1500;
+const INITIAL_DURATION = 5000;
+const MIN_SPAWN_INTERVAL = 500;
+const MIN_DURATION = 1500;
+const DIFFICULTY_INCREASE_PER_POINT = 0.03; // 3% de incremento por punto
 
-const createPlate = (id, direction) => {
+const calculateDifficulty = score => {
+  return Math.min(1 + score * DIFFICULTY_INCREASE_PER_POINT, 2); // Máximo 2x más rápido
+};
+
+const createPlate = (id, direction, score) => {
   const startY = 80 + Math.random() * (height - 220);
+  const difficulty = calculateDifficulty(score);
+  const duration = Math.max(
+    MIN_DURATION,
+    INITIAL_DURATION / difficulty
+  );
+  
   return {
     id,
     direction,
     startY,
+    duration,
     animatedValue: new Animated.Value(0),
     hitAnim: new Animated.Value(0),
     hit: false,
@@ -39,16 +53,22 @@ const GameScreen = () => {
   );
 
   useEffect(() => {
+    const difficulty = calculateDifficulty(score);
+    const currentSpawnInterval = Math.max(
+      MIN_SPAWN_INTERVAL,
+      INITIAL_SPAWN_INTERVAL / difficulty
+    );
+
     const spawnPlate = () => {
       const direction = Math.random() > 0.5 ? 'left' : 'right';
       const id = nextId.current++;
-      const plate = createPlate(id, direction);
+      const plate = createPlate(id, direction, score);
 
       setPlates(current => [...current, plate]);
 
       Animated.timing(plate.animatedValue, {
         toValue: 1,
-        duration: DURATION,
+        duration: plate.duration,
         useNativeDriver: false,
       }).start(() => {
         setPlates(currentPlates => currentPlates.filter(item => item.id !== id));
@@ -56,14 +76,14 @@ const GameScreen = () => {
     };
 
     spawnPlate();
-    spawnTimer.current = setInterval(spawnPlate, SPAWN_INTERVAL);
+    spawnTimer.current = setInterval(spawnPlate, currentSpawnInterval);
 
     return () => {
       if (spawnTimer.current) {
         clearInterval(spawnTimer.current);
       }
     };
-  }, []);
+  }, [score]);
 
   const handleHit = id => {
     setPlates(current => current.filter(item => item.id !== id));
