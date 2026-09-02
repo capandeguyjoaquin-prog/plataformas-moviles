@@ -41,12 +41,14 @@ const createPlate = (id, direction, score) => {
   };
 };
 
-const GameScreen = () => {
+const GameScreen = ({ navigation }) => {
   const [plates, setPlates] = useState([]);
   const [score, setScore] = useState(0);
   const nextId = useRef(1);
   const spawnTimer = useRef(null);
-
+      <Pressable style={styles.homeButton} onPress={() => navigation.popToTop()}>
+        <Text style={styles.homeButtonText}>Volver al inicio</Text>
+      </Pressable>
   const plateSource = useMemo(
     () => require('../../assets/plate-isolated-3d-render-icon-illustration-png.webp'),
     []
@@ -188,6 +190,21 @@ const styles = StyleSheet.create({
   },
   gameArea: {
     flex: 1,
+  },
+  homeButton: {
+    position: 'absolute',
+    right: 20,
+    top: 50,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    zIndex: 10,
+  },
+  homeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
   plate: {
     position: 'absolute',
