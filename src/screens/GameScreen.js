@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Dimensions,
-  ImageBackground,
+  ImageBackground ,
   Pressable,
   StyleSheet,
   Text,
