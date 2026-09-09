@@ -1,0 +1,10 @@
+USE plataformas_moviles;
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+ALTER TABLE ranking MODIFY nombre VARCHAR(50) NOT NULL;

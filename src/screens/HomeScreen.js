@@ -1,7 +1,7 @@
 import React from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, View } from 'react-native';
 
-const HomeScreen = ({ navigation }) => {
+const HomeScreen = ({ navigation, user, onLogout }) => {
   return (
     <ImageBackground
       style={styles.container}
@@ -9,11 +9,15 @@ const HomeScreen = ({ navigation }) => {
       resizeMode="stretch"
     >
       <View style={styles.menu}>
+        <Text style={styles.welcome}>Hola, {user.nombre}</Text>
         <Pressable style={styles.button} onPress={() => navigation.navigate('Juego')}>
           <Text style={styles.buttonText}>Jugar</Text>
         </Pressable>
         <Pressable style={styles.button} onPress={() => navigation.navigate('Ajustes')}>
           <Text style={styles.buttonText}>Ajustes</Text>
+        </Pressable>
+        <Pressable style={styles.logoutButton} onPress={onLogout}>
+          <Text style={styles.buttonText}>Cerrar sesion</Text>
         </Pressable>
       </View>
     </ImageBackground>
@@ -44,6 +48,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  welcome: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    textShadowColor: '#000',
+    textShadowRadius: 4,
+  },
+  logoutButton: {
+    minWidth: 160,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: '#000',
+    backgroundColor: 'rgba(120, 40, 30, 0.92)',
+    alignItems: 'center',
   },
   title: {
     fontSize: 24,

@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { submitScore } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 const PLATE_SIZE = 80;
@@ -15,11 +16,12 @@ const INITIAL_SPAWN_INTERVAL = 1500;
 const INITIAL_DURATION = 5000;
 const MIN_SPAWN_INTERVAL = 500;
 const MIN_DURATION = 1500;
-const DIFFICULTY_INCREASE_PER_POINT = 0.03; 
+const DIFFICULTY_INCREASE_PER_LEVEL = 0.03;
 const TOTAL_LIVES = 4;
 
 const calculateDifficulty = score => {
-  return Math.min(1 + score * DIFFICULTY_INCREASE_PER_POINT, 2); 
+  const difficultyLevel = Math.floor(score / 100);
+  return Math.min(1 + difficultyLevel * DIFFICULTY_INCREASE_PER_LEVEL, 2);
 };
 
 const createPlate = (id, direction, score) => {
@@ -42,11 +44,13 @@ const createPlate = (id, direction, score) => {
   };
 };
 
-const GameScreen = ({ navigation }) => {
+const GameScreen = ({ navigation, route }) => {
   const [plates, setPlates] = useState([]);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(TOTAL_LIVES);
   const [gameOver, setGameOver] = useState(false);
+  const [scoreSaved, setScoreSaved] = useState(false);
+  const difficultyLevel = Math.floor(score / 100);
   const nextId = useRef(1);
   const spawnTimer = useRef(null);
   const livesRef = useRef(TOTAL_LIVES);
@@ -115,17 +119,21 @@ const GameScreen = ({ navigation }) => {
         clearInterval(spawnTimer.current);
       }
     };
-  }, [score]);
+  }, [difficultyLevel]);
 
   useEffect(() => {
     if (!gameOver) return undefined;
+
+    submitScore(score)
+      .then(() => setScoreSaved(true))
+      .catch(error => console.warn('No se pudo guardar el puntaje:', error.message));
 
     const returnTimer = setTimeout(() => {
       navigation.popToTop();
     }, 1800);
 
     return () => clearTimeout(returnTimer);
-  }, [gameOver, navigation]);
+  }, [gameOver, navigation, score]);
 
   const handleHit = id => {
     if (!activePlates.current.delete(id)) return;
@@ -195,12 +203,12 @@ const GameScreen = ({ navigation }) => {
       source={require('../../assets/fondojuego.jpeg')}
       resizeMode="cover"
     >
-      <View style={styles.hud}>
+      <View pointerEvents="none" style={styles.hud}>
         <Text style={styles.scoreTitle}>Puntos</Text>
         <Text style={styles.scoreValue}>{score}</Text>
       </View>
 
-      <View style={styles.livesHud}>
+      <View pointerEvents="none" style={styles.livesHud}>
         {heartAnimations.map((opacity, index) => (
           <Animated.Image
             key={index}
