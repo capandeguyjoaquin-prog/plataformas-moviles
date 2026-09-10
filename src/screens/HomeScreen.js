@@ -9,7 +9,7 @@ const HomeScreen = ({ navigation, user, onLogout }) => {
       resizeMode="stretch"
     >
       <View style={styles.menu}>
-        <Text style={styles.welcome}>Hola, {user.nombre}</Text>
+        <Text style={styles.welcome}></Text>
         <Pressable style={styles.button} onPress={() => navigation.navigate('Juego')}>
           <Text style={styles.buttonText}>Jugar</Text>
         </Pressable>
