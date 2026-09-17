@@ -4,7 +4,8 @@
 
 1. Ejecuta en MySQL el contenido de `backend/schema.sql` despues de crear `plataformas_moviles` y la tabla `ranking`.
 2. Copia `backend/.env.example` como `backend/.env` y completa las credenciales de MySQL. El archivo `.env` es obligatorio si tu usuario root tiene contraseña.
-3. Instala y levanta la API:
+3. Agrega tu clave de Meteosource en `backend/.env` como `METEOSOURCE_API_KEY=...`. La app consulta el clima actual de Buenos Aires al iniciar el juego y cambia la tonalidad del fondo según el código meteorológico.
+4. Instala y levanta la API:
 
 ```powershell
 cd backend
@@ -12,7 +13,7 @@ npm install
 npm start
 ```
 
-4. Para Expo, define la direccion de la computadora que ejecuta la API. En el mismo equipo puedes usar `http://localhost:3000`; desde un telefono usa la IP local, por ejemplo:
+5. Para Expo, define la direccion de la computadora que ejecuta la API. En el mismo equipo puedes usar `http://localhost:3000`; desde un telefono usa la IP local, por ejemplo:
 
 ```powershell
 $env:EXPO_PUBLIC_API_URL="http://192.168.1.20:3000"

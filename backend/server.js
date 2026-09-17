@@ -10,10 +10,41 @@ app.use(cors());
 app.use(express.json());
 const pool = mysql.createPool({ host: process.env.DB_HOST || 'localhost', port: process.env.DB_PORT || 3306, user: process.env.DB_USER || 'root', password: process.env.DB_PASSWORD || '', database: process.env.DB_NAME || 'plataformas_moviles', waitForConnections: true, connectionLimit: 10 });
 const tokenFor = user => jwt.sign({ id: user.id, nombre: user.nombre }, process.env.JWT_SECRET || 'cambia-esta-clave');
+let weatherCache = { expiresAt: 0, value: null };
 const auth = (request, response, next) => {
   try { request.user = jwt.verify(request.headers.authorization?.replace('Bearer ', ''), process.env.JWT_SECRET || 'cambia-esta-clave'); next(); }
   catch { response.status(401).json({ error: 'Sesion no valida' }); }
 };
+
+app.get('/api/weather', async (_request, response) => {
+  if (!process.env.METEOSOURCE_API_KEY) {
+    return response.status(503).json({ error: 'El clima no esta configurado en el servidor' });
+  }
+
+  if (weatherCache.value && weatherCache.expiresAt > Date.now()) {
+    return response.json(weatherCache.value);
+  }
+
+  try {
+    const weatherResponse = await fetch('https://www.meteosource.com/api/v1/free/point?lat=-34.6037&lon=-58.3816&sections=current&timezone=America%2FArgentina%2FBuenos_Aires&language=en&units=metric', {
+      headers: { 'X-API-Key': process.env.METEOSOURCE_API_KEY },
+    });
+    const weather = await weatherResponse.json();
+    if (!weatherResponse.ok) {
+      return response.status(weatherResponse.status).json({ error: weather.detail || 'No se pudo consultar el clima' });
+    }
+
+    const result = {
+      icon: weather.current?.icon_num || 1,
+      summary: weather.current?.summary || 'Weather unavailable',
+      temperature: weather.current?.temperature ?? null,
+    };
+    weatherCache = { value: result, expiresAt: Date.now() + 10 * 60 * 1000 };
+    return response.json(result);
+  } catch (error) {
+    return response.status(502).json({ error: 'No se pudo consultar el servicio meteorologico' });
+  }
+});
 
 app.post('/api/auth/register', async (request, response) => {
   try {

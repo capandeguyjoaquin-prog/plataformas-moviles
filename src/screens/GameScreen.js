@@ -8,29 +8,71 @@ import {
   Text,
   View,
 } from 'react-native';
-import { submitScore } from '../services/api';
+import { getWeather, submitScore } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 const PLATE_SIZE = 80;
 const INITIAL_SPAWN_INTERVAL = 1500;
 const INITIAL_DURATION = 5000;
 const MIN_SPAWN_INTERVAL = 500;
-const MIN_DURATION = 1500;
 const DIFFICULTY_INCREASE_PER_LEVEL = 0.03;
+const MIN_SPEED = 1.0;
+const MAX_SPEED = 3.1;
+const MIN_SPEED_INCREASE_PER_LEVEL = 0.08;
+const MAX_SPEED_INCREASE_PER_LEVEL = 0.16;
 const TOTAL_LIVES = 4;
+
+const WEATHER_THEMES = {
+  sunny: { overlay: 'rgba(255, 184, 52, 0.18)' },
+  cloudy: { overlay: 'rgba(93, 112, 136, 0.32)' },
+  rain: { overlay: 'rgba(34, 92, 145, 0.38)' },
+  storm: { overlay: 'rgba(38, 31, 72, 0.48)' },
+  snow: { overlay: 'rgba(205, 225, 240, 0.34)' },
+};
+
+const WEATHER_BACKGROUNDS = {
+  sunny: require('../../assets/fondojuego.jpeg'),
+  cloudy: require('../../assets/fondo_cloudy.jpg'),
+  rain: require('../../assets/fondo_rain.jpg'),
+  storm: require('../../assets/fondo_storm.jpg'),
+  snow: require('../../assets/fondo_snow.jpg'),
+};
+
+const getWeatherTheme = icon => {
+  if ([14, 15, 33].includes(icon)) return WEATHER_THEMES.storm;
+  if ([10, 11, 12, 13, 23, 24, 25, 32].includes(icon)) return WEATHER_THEMES.rain;
+  if ([16, 17, 18, 19, 20, 21, 22, 34, 35, 36].includes(icon)) return WEATHER_THEMES.snow;
+  if ([5, 6, 7, 8, 9, 29, 30, 31].includes(icon)) return WEATHER_THEMES.cloudy;
+  return WEATHER_THEMES.sunny;
+};
+
+const getWeatherBackground = icon => {
+  if ([14, 15, 33].includes(icon)) return WEATHER_BACKGROUNDS.storm;
+  if ([10, 11, 12, 13, 23, 24, 25, 32].includes(icon)) return WEATHER_BACKGROUNDS.rain;
+  if ([16, 17, 18, 19, 20, 21, 22, 34, 35, 36].includes(icon)) return WEATHER_BACKGROUNDS.snow;
+  if ([5, 6, 7, 8, 9, 29, 30, 31].includes(icon)) return WEATHER_BACKGROUNDS.cloudy;
+  return WEATHER_BACKGROUNDS.sunny;
+};
 
 const calculateDifficulty = score => {
   const difficultyLevel = Math.floor(score / 100);
   return Math.min(1 + difficultyLevel * DIFFICULTY_INCREASE_PER_LEVEL, 2);
 };
 
+const calculateSpeedRange = score => {
+  const difficultyLevel = Math.floor(score / 100);
+
+  return {
+    min: MIN_SPEED + difficultyLevel * MIN_SPEED_INCREASE_PER_LEVEL,
+    max: MAX_SPEED + difficultyLevel * MAX_SPEED_INCREASE_PER_LEVEL,
+  };
+};
+
 const createPlate = (id, direction, score) => {
   const startY = 80 + Math.random() * (height - 220);
-  const difficulty = calculateDifficulty(score);
-  const duration = Math.max(
-    MIN_DURATION,
-    INITIAL_DURATION / difficulty
-  );
+  const speedRange = calculateSpeedRange(score);
+  const speed = speedRange.min + Math.random() * (speedRange.max - speedRange.min);
+  const duration = INITIAL_DURATION / speed;
   
   return {
     id,
@@ -50,6 +92,7 @@ const GameScreen = ({ navigation, route }) => {
   const [lives, setLives] = useState(TOTAL_LIVES);
   const [gameOver, setGameOver] = useState(false);
   const [scoreSaved, setScoreSaved] = useState(false);
+  const [weather, setWeather] = useState(null);
   const difficultyLevel = Math.floor(score / 100);
   const nextId = useRef(1);
   const spawnTimer = useRef(null);
@@ -62,7 +105,20 @@ const GameScreen = ({ navigation, route }) => {
     () => require('../../assets/plate-isolated-3d-render-icon-illustration-png.webp'),
     []
   );
+  const stainedPlateSource = useMemo(
+    () => require('../../assets/plato manchado sin fondo.png'),
+    []
+  );
 
+  useEffect(() => {
+  setWeather({ icon: 2 }); // Simula lluvia
+}, []);
+
+/*2    soleado
+6    nublado
+11   lluvia
+14   tormenta
+17   nieve*/
   useEffect(() => {
     const difficulty = calculateDifficulty(score);
     const currentSpawnInterval = Math.max(
@@ -85,7 +141,9 @@ const GameScreen = ({ navigation, route }) => {
         duration: plate.duration,
         useNativeDriver: false,
       }).start(() => {
-        setPlates(currentPlates => currentPlates.filter(item => item.id !== id));
+        setPlates(currentPlates => currentPlates.filter(
+          item => item.id !== id || item.hit
+        ));
 
         if (!activePlates.current.delete(id)) return;
         if (livesRef.current === 0) return;
@@ -138,8 +196,23 @@ const GameScreen = ({ navigation, route }) => {
   const handleHit = id => {
     if (!activePlates.current.delete(id)) return;
 
-    setPlates(current => current.filter(item => item.id !== id));
+    setPlates(current => current.map(item => (
+      item.id === id ? { ...item, hit: true } : item
+    )));
     setScore(prev => prev + 1);
+
+    const plate = plates.find(item => item.id === id);
+    if (!plate) return;
+
+    setTimeout(() => {
+      Animated.timing(plate.hitAnim, {
+        toValue: 1,
+        duration: 900,
+        useNativeDriver: false,
+      }).start(() => {
+        setPlates(current => current.filter(item => item.id !== id));
+      });
+    }, 150);
   };
 
   const renderPlate = plate => {
@@ -183,12 +256,13 @@ const GameScreen = ({ navigation, route }) => {
       >
         <Pressable
           onPress={() => handleHit(plate.id)}
+          disabled={plate.hit}
           hitSlop={{ top: 24, bottom: 24, left: 24, right: 24 }}
           android_ripple={{ color: 'rgba(255,255,255,0.2)' }}
           style={styles.pressable}
         >
           <Animated.Image
-            source={plateSource}
+            source={plate.hit ? stainedPlateSource : plateSource}
             style={styles.plateImage}
             resizeMode="contain"
           />
@@ -200,9 +274,13 @@ const GameScreen = ({ navigation, route }) => {
   return (
     <ImageBackground
       style={styles.container}
-      source={require('../../assets/fondojuego.jpeg')}
+      source={getWeatherBackground(weather?.icon)}
       resizeMode="cover"
     >
+      <View
+        pointerEvents="none"
+        style={[styles.weatherOverlay, { backgroundColor: getWeatherTheme(weather?.icon).overlay }]}
+      />
       <View pointerEvents="none" style={styles.hud}>
         <Text style={styles.scoreTitle}>Puntos</Text>
         <Text style={styles.scoreValue}>{score}</Text>
@@ -235,6 +313,10 @@ const GameScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  weatherOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 1,
   },
   hud: {
     position: 'absolute',
