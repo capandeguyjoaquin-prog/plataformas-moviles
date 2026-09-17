@@ -119,6 +119,15 @@ const GameScreen = ({ navigation, route }) => {
 11   lluvia
 14   tormenta
 17   nieve*/
+
+/*
+USAR ESTE DESPUES DE PROBAR LOS CLIMAS
+useEffect(() => {
+  getWeather()
+    .then(setWeather)
+    .catch(error => console.warn('No se pudo cargar el clima:', error.message));
+}, []);*/
+
   useEffect(() => {
     const difficulty = calculateDifficulty(score);
     const currentSpawnInterval = Math.max(
