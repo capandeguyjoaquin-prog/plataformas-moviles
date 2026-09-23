@@ -86,6 +86,11 @@ const createPlate = (id, direction, score) => {
   };
 };
 
+const createBomb = (id, direction, score) => ({
+  ...createPlate(id, direction, score),
+  type: 'bomb',
+});
+
 const GameScreen = ({ navigation, route }) => {
   const [plates, setPlates] = useState([]);
   const [score, setScore] = useState(0);
@@ -109,9 +114,36 @@ const GameScreen = ({ navigation, route }) => {
     () => require('../../assets/plato manchado sin fondo.png'),
     []
   );
+  const bombSource = useMemo(
+    () => require('../../assets/bomba.png'),
+    []
+  );
+
+  const loseLife = () => {
+    if (livesRef.current === 0) return;
+
+    const remainingLives = livesRef.current - 1;
+    livesRef.current = remainingLives;
+    setLives(remainingLives);
+
+    Animated.timing(heartAnimations[remainingLives], {
+      toValue: 0,
+      duration: 450,
+      useNativeDriver: true,
+    }).start();
+
+    if (remainingLives === 0 && spawnTimer.current) {
+      clearInterval(spawnTimer.current);
+      spawnTimer.current = null;
+    }
+
+    if (remainingLives === 0) {
+      setGameOver(true);
+    }
+  };
 
   useEffect(() => {
-  setWeather({ icon: 2 }); // Simula lluvia
+  setWeather({ icon: 17 }); // Simula lluvia
 }, []);
 
 /*2    soleado
@@ -140,7 +172,9 @@ useEffect(() => {
 
       const direction = Math.random() > 0.5 ? 'left' : 'right';
       const id = nextId.current++;
-      const plate = createPlate(id, direction, score);
+      const plate = Math.random() < 0.25
+        ? createBomb(id, direction, score)
+        : createPlate(id, direction, score);
       activePlates.current.add(id);
 
       setPlates(current => [...current, plate]);
@@ -157,24 +191,7 @@ useEffect(() => {
         if (!activePlates.current.delete(id)) return;
         if (livesRef.current === 0) return;
 
-        const remainingLives = livesRef.current - 1;
-        livesRef.current = remainingLives;
-        setLives(remainingLives);
-
-        Animated.timing(heartAnimations[remainingLives], {
-          toValue: 0,
-          duration: 450,
-          useNativeDriver: true,
-        }).start();
-
-        if (remainingLives === 0 && spawnTimer.current) {
-          clearInterval(spawnTimer.current);
-          spawnTimer.current = null;
-        }
-
-        if (remainingLives === 0) {
-          setGameOver(true);
-        }
+        loseLife();
       });
     };
 
@@ -208,10 +225,14 @@ useEffect(() => {
     setPlates(current => current.map(item => (
       item.id === id ? { ...item, hit: true } : item
     )));
-    setScore(prev => prev + 1);
-
     const plate = plates.find(item => item.id === id);
     if (!plate) return;
+
+    if (plate.type === 'bomb') {
+      loseLife();
+    } else {
+      setScore(prev => prev + 1);
+    }
 
     setTimeout(() => {
       Animated.timing(plate.hitAnim, {
@@ -271,7 +292,9 @@ useEffect(() => {
           style={styles.pressable}
         >
           <Animated.Image
-            source={plate.hit ? stainedPlateSource : plateSource}
+            source={plate.type === 'bomb'
+              ? bombSource
+              : plate.hit ? stainedPlateSource : plateSource}
             style={styles.plateImage}
             resizeMode="contain"
           />

@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.20.120:3000';//ipconfig en cmd ipv4
+const API_URL = process.env.EXPO_PUBLIC_API_URL || 'http://10.0.5.251:3000';//ipconfig en cmd ipv4
 
 const request = async (path, options = {}) => {
   const response = await fetch(`${API_URL}${path}`, {
