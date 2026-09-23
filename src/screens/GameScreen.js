@@ -17,7 +17,7 @@ const INITIAL_DURATION = 5000;
 const MIN_SPAWN_INTERVAL = 500;
 const DIFFICULTY_INCREASE_PER_LEVEL = 0.03;
 const MIN_SPEED = 1.0;
-const MAX_SPEED = 3.1;
+const MAX_SPEED = 2.5;
 const MIN_SPEED_INCREASE_PER_LEVEL = 0.08;
 const MAX_SPEED_INCREASE_PER_LEVEL = 0.16;
 const TOTAL_LIVES = 4;
@@ -118,6 +118,10 @@ const GameScreen = ({ navigation, route }) => {
     () => require('../../assets/bomba.png'),
     []
   );
+  const explosionSource = useMemo(
+    () => require('../../assets/explota.png'),
+    []
+  );
 
   const loseLife = () => {
     if (livesRef.current === 0) return;
@@ -143,7 +147,7 @@ const GameScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-  setWeather({ icon: 17 }); // Simula lluvia
+  setWeather({ icon: 6 }); // Simula lluvia
 }, []);
 
 /*2    soleado
@@ -183,7 +187,9 @@ useEffect(() => {
         toValue: 1,
         duration: plate.duration,
         useNativeDriver: false,
-      }).start(() => {
+      }).start(({ finished }) => {
+        if (!finished) return;
+
         setPlates(currentPlates => currentPlates.filter(
           item => item.id !== id || item.hit
         ));
@@ -191,7 +197,9 @@ useEffect(() => {
         if (!activePlates.current.delete(id)) return;
         if (livesRef.current === 0) return;
 
-        loseLife();
+        if (plate.type !== 'bomb') {
+          loseLife();
+        }
       });
     };
 
@@ -222,11 +230,16 @@ useEffect(() => {
   const handleHit = id => {
     if (!activePlates.current.delete(id)) return;
 
+    const plate = plates.find(item => item.id === id);
+    if (!plate) return;
+
+    if (plate.type === 'bomb') {
+      plate.animatedValue.stopAnimation();
+    }
+
     setPlates(current => current.map(item => (
       item.id === id ? { ...item, hit: true } : item
     )));
-    const plate = plates.find(item => item.id === id);
-    if (!plate) return;
 
     if (plate.type === 'bomb') {
       loseLife();
@@ -234,15 +247,13 @@ useEffect(() => {
       setScore(prev => prev + 1);
     }
 
-    setTimeout(() => {
-      Animated.timing(plate.hitAnim, {
-        toValue: 1,
-        duration: 900,
-        useNativeDriver: false,
-      }).start(() => {
-        setPlates(current => current.filter(item => item.id !== id));
-      });
-    }, 150);
+    Animated.timing(plate.hitAnim, {
+      toValue: 1,
+      duration: 900,
+      useNativeDriver: false,
+    }).start(() => {
+      setPlates(current => current.filter(item => item.id !== id));
+    });
   };
 
   const renderPlate = plate => {
@@ -271,16 +282,26 @@ useEffect(() => {
       outputRange: [1, 0.75],
     });
 
+    const rotation = plate.type === 'bomb' && plate.hit
+      ? '0deg'
+      : plate.animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: plate.direction === 'left'
+          ? ['0deg', '720deg']
+          : ['0deg', '-720deg'],
+      });
+
     return (
       <Animated.View
         key={plate.id}
         style={[
           styles.plate,
+            plate.type === 'bomb' && styles.bombPlate,
           {
             opacity: hitOpacity,
             left,
             top,
-            transform: [{ scale: hitScale }],
+            transform: [{ rotate: rotation }, { scale: hitScale }],
           },
         ]}
       >
@@ -293,9 +314,12 @@ useEffect(() => {
         >
           <Animated.Image
             source={plate.type === 'bomb'
-              ? bombSource
+              ? plate.hit ? explosionSource : bombSource
               : plate.hit ? stainedPlateSource : plateSource}
-            style={styles.plateImage}
+            style={[
+              styles.plateImage,
+              plate.type === 'bomb' && plate.hit && styles.explosionImage,
+            ]}
             resizeMode="contain"
           />
         </Pressable>
@@ -411,6 +435,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  bombPlate: {
+    width: PLATE_SIZE + 30,
+    height: PLATE_SIZE + 30,
+  },
   pressable: {
     width: '100%',
     height: '100%',
@@ -420,6 +448,9 @@ const styles = StyleSheet.create({
   plateImage: {
     width: '100%',
     height: '100%',
+  },
+  explosionImage: {
+    transform: [{ scale: 500 }],
   },
   instructionBox: {
     position: 'absolute',
