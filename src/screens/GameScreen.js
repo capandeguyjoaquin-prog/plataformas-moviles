@@ -147,13 +147,13 @@ const GameScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-  setWeather({ icon: 6 }); // Simula lluvia
+  setWeather({ icon: 11 }); // Simula lluvia
 }, []);
 
 /*2    soleado
 6    nublado
 11   lluvia
-14   tormenta
+14   tormentaa
 17   nieve*/
 
 /*
