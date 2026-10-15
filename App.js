@@ -7,7 +7,7 @@ import LoginScreen from './src/screens/LoginScreen';
 // Importar las pantallas
 import HomeScreen from './src/screens/HomeScreen';
 import GameScreen from './src/screens/GameScreen';
-import SettingsScreen from './src/screens/SettingsScreen';
+import RankingScreen from './src/screens/RankingScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -25,7 +25,7 @@ export default function App() {
           {props => <HomeScreen {...props} user={session.user} onLogout={() => setSession(null)} />}
         </Stack.Screen>
         <Stack.Screen name="Juego" component={GameScreen} options={{ headerShown: false }} />
-        <Stack.Screen name="Ajustes" component={SettingsScreen} options={{ headerShown: false }} />
+        <Stack.Screen name="Ranking" component={RankingScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
       <StatusBar style="auto" />
     </NavigationContainer>

@@ -147,14 +147,15 @@ const GameScreen = ({ navigation, route }) => {
   };
 
   useEffect(() => {
-  setWeather({ icon: 11 }); // Simula lluvia
+  getWeather()
+    .then(setWeather)
+    .catch(error => console.warn('No se pudo cargar el clima:', error.message));
 }, []);
-
 /*2    soleado
-6    nublado
-11   lluvia
-14   tormentaa
-17   nieve*/
+  6    nublado
+  11   lluvia
+  14   tormenta
+  17   nieve*/
 
 /*
 USAR ESTE DESPUES DE PROBAR LOS CLIMAS

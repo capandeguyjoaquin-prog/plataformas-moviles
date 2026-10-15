@@ -2,7 +2,7 @@
 
 ## Base de datos y API
 
-1. Ejecuta en MySQL el contenido de `backend/schema.sql` despues de crear `plataformas_moviles` y la tabla `ranking`.
+1. Crea la base de datos `plataformas_moviles` en MySQL y ejecuta `backend/schema.sql`. El script crea las tablas `usuarios` y `ranking` (conectada a los usuarios mediante `usuario_id`).
 2. Copia `backend/.env.example` como `backend/.env` y completa las credenciales de MySQL. El archivo `.env` es obligatorio si tu usuario root tiene contraseña.
 3. Agrega tu clave de Meteosource en `backend/.env` como `METEOSOURCE_API_KEY=...`. La app consulta el clima actual de Buenos Aires al iniciar el juego y cambia la tonalidad del fondo según el código meteorológico.
 4. Instala y levanta la API:
@@ -20,4 +20,4 @@ $env:EXPO_PUBLIC_API_URL="http://192.168.1.20:3000"
 npm start
 ```
 
-La app permite registrar/iniciar sesion y envia automaticamente el puntaje al endpoint protegido cuando termina una partida. El valor por defecto de la app apunta a `10.0.20.203`; si cambia la IP de tu Wi-Fi, define `EXPO_PUBLIC_API_URL` y reinicia Expo.
+La app permite registrar/iniciar sesion y envia automaticamente el puntaje al endpoint protegido cuando termina una partida. El ranking consulta los puntajes guardados en MySQL y carga mas filas al desplazarse hasta el final. Si cambia la IP de tu Wi-Fi, define `EXPO_PUBLIC_API_URL` con la direccion del servidor y reinicia Expo.

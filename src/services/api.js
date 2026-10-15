@@ -35,4 +35,8 @@ export const submitScore = async puntaje => {
   });
 };
 
+export const getRanking = (offset = 0, limit = 20) => request(
+  `/api/ranking?offset=${offset}&limit=${limit}`
+);
+
 export const getWeather = () => request('/api/weather');

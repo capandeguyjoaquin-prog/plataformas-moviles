@@ -71,13 +71,34 @@ app.post('/api/auth/login', async (request, response) => {
 app.post('/api/ranking', auth, async (request, response) => {
   const puntaje = Number(request.body.puntaje);
   if (!Number.isInteger(puntaje) || puntaje < 0) return response.status(400).json({ error: 'Puntaje invalido' });
-  try { await pool.query('INSERT INTO ranking (nombre, puntaje) VALUES (?, ?)', [request.user.nombre, puntaje]); response.status(201).json({ ok: true }); }
-  catch { response.status(500).json({ error: 'No se pudo guardar el puntaje' }); }
+  try { await pool.query('INSERT INTO ranking (usuario_id, puntaje) VALUES (?, ?)', [request.user.id, puntaje]); response.status(201).json({ ok: true }); }
+  catch (error) {
+    console.error('Error al guardar el puntaje:', error);
+    response.status(500).json({ error: 'No se pudo guardar el puntaje' });
+  }
 });
 
-app.get('/api/ranking', async (_request, response) => {
-  try { const [rows] = await pool.query('SELECT ROW_NUMBER() OVER (ORDER BY puntaje DESC) AS posicion, nombre, puntaje FROM ranking ORDER BY puntaje DESC'); response.json(rows); }
-  catch { response.status(500).json({ error: 'No se pudo consultar el ranking' }); }
+app.get('/api/ranking', async (request, response) => {
+  const offset = Number(request.query.offset ?? 0);
+  const limit = Number(request.query.limit ?? 20);
+  if (!Number.isInteger(offset) || offset < 0 || !Number.isInteger(limit) || limit < 1 || limit > 100) {
+    return response.status(400).json({ error: 'Paginacion invalida' });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      `SELECT r.id, u.nombre, r.puntaje
+       FROM ranking r
+       INNER JOIN usuarios u ON u.id = r.usuario_id
+       ORDER BY r.puntaje DESC, r.id ASC
+       LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+    response.json(rows);
+  } catch (error) {
+    console.error('Error al consultar el ranking:', error);
+    response.status(500).json({ error: 'No se pudo consultar el ranking' });
+  }
 });
 
 app.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log(`API lista en el puerto ${process.env.PORT || 3000}`));

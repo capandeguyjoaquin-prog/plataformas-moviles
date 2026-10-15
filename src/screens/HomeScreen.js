@@ -13,8 +13,8 @@ const HomeScreen = ({ navigation, user, onLogout }) => {
         <Pressable style={styles.button} onPress={() => navigation.navigate('Juego')}>
           <Text style={styles.buttonText}>Jugar</Text>
         </Pressable>
-        <Pressable style={styles.button} onPress={() => navigation.navigate('Ajustes')}>
-          <Text style={styles.buttonText}>Ajustes</Text>
+        <Pressable style={styles.button} onPress={() => navigation.navigate('Ranking')}>
+          <Text style={styles.buttonText}>Ranking</Text>
         </Pressable>
         <Pressable style={styles.logoutButton} onPress={onLogout}>
           <Text style={styles.buttonText}>Cerrar sesion</Text>
