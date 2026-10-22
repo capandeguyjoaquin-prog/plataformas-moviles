@@ -12,12 +12,13 @@ import { getWeather, submitScore } from '../services/api';
 
 const { width, height } = Dimensions.get('window');
 const PLATE_SIZE = 80;
+const FLIGHT_STEPS = 16;
 const INITIAL_SPAWN_INTERVAL = 1500;
 const INITIAL_DURATION = 5000;
-const MIN_SPAWN_INTERVAL = 500;
+const MIN_SPAWN_INTERVAL = 200;
 const DIFFICULTY_INCREASE_PER_LEVEL = 0.03;
 const MIN_SPEED = 1.0;
-const MAX_SPEED = 2.5;
+const MAX_SPEED = 3;
 const MIN_SPEED_INCREASE_PER_LEVEL = 0.08;
 const MAX_SPEED_INCREASE_PER_LEVEL = 0.16;
 const TOTAL_LIVES = 4;
@@ -31,11 +32,17 @@ const WEATHER_THEMES = {
 };
 
 const WEATHER_BACKGROUNDS = {
+  night: require('../../assets/fondo_night.jpg'),
   sunny: require('../../assets/fondojuego.jpeg'),
   cloudy: require('../../assets/fondo_cloudy.jpg'),
   rain: require('../../assets/fondo_rain.jpg'),
   storm: require('../../assets/fondo_storm.jpg'),
   snow: require('../../assets/fondo_snow.jpg'),
+};
+
+const isNightTime = () => {
+  const hour = new Date().getHours();
+  return hour >= 18 || hour < 6;
 };
 
 const getWeatherTheme = icon => {
@@ -46,21 +53,22 @@ const getWeatherTheme = icon => {
   return WEATHER_THEMES.sunny;
 };
 
-const getWeatherBackground = icon => {
+const getWeatherBackground = (icon, isNight) => {
   if ([14, 15, 33].includes(icon)) return WEATHER_BACKGROUNDS.storm;
   if ([10, 11, 12, 13, 23, 24, 25, 32].includes(icon)) return WEATHER_BACKGROUNDS.rain;
   if ([16, 17, 18, 19, 20, 21, 22, 34, 35, 36].includes(icon)) return WEATHER_BACKGROUNDS.snow;
   if ([5, 6, 7, 8, 9, 29, 30, 31].includes(icon)) return WEATHER_BACKGROUNDS.cloudy;
+  if (isNight) return WEATHER_BACKGROUNDS.night;
   return WEATHER_BACKGROUNDS.sunny;
 };
 
 const calculateDifficulty = score => {
-  const difficultyLevel = Math.floor(score / 100);
+  const difficultyLevel = Math.floor(score / 10);
   return Math.min(1 + difficultyLevel * DIFFICULTY_INCREASE_PER_LEVEL, 2);
 };
 
 const calculateSpeedRange = score => {
-  const difficultyLevel = Math.floor(score / 100);
+  const difficultyLevel = Math.floor(score / 10);
 
   return {
     min: MIN_SPEED + difficultyLevel * MIN_SPEED_INCREASE_PER_LEVEL,
@@ -78,6 +86,8 @@ const createPlate = (id, direction, score) => {
     id,
     direction,
     startY,
+    jumpHeight: 120 + Math.random() * 60,
+    rotationDegrees: 180 + Math.random() * 180,
     duration,
     animatedValue: new Animated.Value(0),
     hitAnim: new Animated.Value(0),
@@ -92,17 +102,20 @@ const createBomb = (id, direction, score) => ({
 });
 
 const GameScreen = ({ navigation, route }) => {
+  const [isNight, setIsNight] = useState(isNightTime);
   const [plates, setPlates] = useState([]);
   const [score, setScore] = useState(0);
   const [lives, setLives] = useState(TOTAL_LIVES);
   const [gameOver, setGameOver] = useState(false);
-  const [scoreSaved, setScoreSaved] = useState(false);
+  const [scoreSaveStatus, setScoreSaveStatus] = useState('idle');
+  const [scoreSaveError, setScoreSaveError] = useState('');
   const [weather, setWeather] = useState(null);
   const difficultyLevel = Math.floor(score / 100);
   const nextId = useRef(1);
   const spawnTimer = useRef(null);
   const livesRef = useRef(TOTAL_LIVES);
   const activePlates = useRef(new Set());
+  const scoreSubmissionStarted = useRef(false);
   const heartAnimations = useRef(
     Array.from({ length: TOTAL_LIVES }, () => new Animated.Value(1))
   ).current;
@@ -145,6 +158,14 @@ const GameScreen = ({ navigation, route }) => {
       setGameOver(true);
     }
   };
+
+  useEffect(() => {
+    const nightCheckInterval = setInterval(() => {
+      setIsNight(isNightTime());
+    }, 60_000);
+
+    return () => clearInterval(nightCheckInterval);
+  }, []);
 
   useEffect(() => {
   getWeather()
@@ -215,18 +236,24 @@ useEffect(() => {
   }, [difficultyLevel]);
 
   useEffect(() => {
-    if (!gameOver) return undefined;
+    if (!gameOver || scoreSubmissionStarted.current) return;
+    scoreSubmissionStarted.current = true;
 
-    submitScore(score)
-      .then(() => setScoreSaved(true))
-      .catch(error => console.warn('No se pudo guardar el puntaje:', error.message));
+    const saveScore = async () => {
+      setScoreSaveStatus('saving');
+      setScoreSaveError('');
+      try {
+        await submitScore(score);
+        setScoreSaveStatus('saved');
+      } catch (error) {
+        console.warn('No se pudo guardar el puntaje:', error.message);
+        setScoreSaveError(error.message);
+        setScoreSaveStatus('error');
+      }
+    };
 
-    const returnTimer = setTimeout(() => {
-      navigation.popToTop();
-    }, 1800);
-
-    return () => clearTimeout(returnTimer);
-  }, [gameOver, navigation, score]);
+    saveScore();
+  }, [gameOver, score]);
 
   const handleHit = id => {
     if (!activePlates.current.delete(id)) return;
@@ -268,9 +295,15 @@ useEffect(() => {
       outputRange: [startX, endX],
     });
 
+    const flightProgress = Array.from(
+      { length: FLIGHT_STEPS + 1 },
+      (_, index) => index / FLIGHT_STEPS
+    );
     const top = plate.animatedValue.interpolate({
-      inputRange: [0, 0.4, 0.7, 1],
-      outputRange: [plate.startY, plate.startY - 140, plate.startY - 80, plate.startY],
+      inputRange: flightProgress,
+      outputRange: flightProgress.map(progress => (
+        plate.startY - plate.jumpHeight * 4 * progress * (1 - progress)
+      )),
     });
 
     const hitOpacity = plate.hitAnim.interpolate({
@@ -288,8 +321,8 @@ useEffect(() => {
       : plate.animatedValue.interpolate({
         inputRange: [0, 1],
         outputRange: plate.direction === 'left'
-          ? ['0deg', '720deg']
-          : ['0deg', '-720deg'],
+          ? ['0deg', `${plate.rotationDegrees}deg`]
+          : ['0deg', `${-plate.rotationDegrees}deg`],
       });
 
     return (
@@ -331,7 +364,7 @@ useEffect(() => {
   return (
     <ImageBackground
       style={styles.container}
-      source={getWeatherBackground(weather?.icon)}
+      source={getWeatherBackground(weather?.icon, isNight)}
       resizeMode="cover"
     >
       <View
@@ -359,6 +392,16 @@ useEffect(() => {
       {gameOver && (
         <View style={styles.gameOverOverlay}>
           <Text style={styles.gameOverText}>PERDISTE</Text>
+          <Text style={styles.finalScore}>Puntaje: {score}</Text>
+          
+          <View style={styles.gameOverActions}>
+            <Pressable style={styles.gameOverButton} onPress={() => navigation.replace('Juego')}>
+              <Text style={styles.gameOverButtonText}>Reintentar</Text>
+            </Pressable>
+            <Pressable style={styles.gameOverButton} onPress={() => navigation.popToTop()}>
+              <Text style={styles.gameOverButtonText}>Volver al menu</Text>
+            </Pressable>
+          </View>
         </View>
       )}
 
@@ -428,6 +471,42 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     backgroundColor: 'rgba(0, 0, 0, 0.75)',
     borderRadius: 12,
+  },
+  finalScore: {
+    marginTop: 16,
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  scoreSaveMessage: {
+    marginTop: 12,
+    color: '#d8f5c4',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  scoreSaveError: {
+    marginTop: 12,
+    marginHorizontal: 24,
+    color: '#ffb3a7',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  gameOverActions: {
+    marginTop: 18,
+    gap: 10,
+  },
+  gameOverButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    minWidth: 220,
+    borderRadius: 10,
+    backgroundColor: '#d98c3a',
+    alignItems: 'center',
+  },
+  gameOverButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   plate: {
     position: 'absolute',

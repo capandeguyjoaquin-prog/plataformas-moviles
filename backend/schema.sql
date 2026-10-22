@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS ranking (
     usuario_id INT NOT NULL,
     puntaje INT NOT NULL,
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_ranking_usuario (usuario_id),
     INDEX idx_ranking_puntaje (puntaje, id),
     CONSTRAINT fk_ranking_usuario
         FOREIGN KEY (usuario_id) REFERENCES usuarios(id)

@@ -9,6 +9,23 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 const pool = mysql.createPool({ host: process.env.DB_HOST || 'localhost', port: process.env.DB_PORT || 3306, user: process.env.DB_USER || 'root', password: process.env.DB_PASSWORD || '', database: process.env.DB_NAME || 'plataformas_moviles', waitForConnections: true, connectionLimit: 10 });
+let rankingScoreColumnPromise;
+const getRankingScoreColumn = () => {
+  if (!rankingScoreColumnPromise) {
+    rankingScoreColumnPromise = pool.query('SHOW COLUMNS FROM ranking')
+      .then(([columns]) => {
+        const names = new Set(columns.map(column => column.Field));
+        if (names.has('puntajemaximo')) return 'puntajemaximo';
+        if (names.has('puntaje')) return 'puntaje';
+        throw new Error('La tabla ranking no tiene una columna de puntaje compatible');
+      })
+      .catch(error => {
+        rankingScoreColumnPromise = null;
+        throw error;
+      });
+  }
+  return rankingScoreColumnPromise;
+};
 const tokenFor = user => jwt.sign({ id: user.id, nombre: user.nombre }, process.env.JWT_SECRET || 'cambia-esta-clave');
 let weatherCache = { expiresAt: 0, value: null };
 const auth = (request, response, next) => {
@@ -69,9 +86,17 @@ app.post('/api/auth/login', async (request, response) => {
 });
 
 app.post('/api/ranking', auth, async (request, response) => {
-  const puntaje = Number(request.body.puntaje);
+  const puntaje = Number(request.body?.puntaje);
   if (!Number.isInteger(puntaje) || puntaje < 0) return response.status(400).json({ error: 'Puntaje invalido' });
-  try { await pool.query('INSERT INTO ranking (usuario_id, puntaje) VALUES (?, ?)', [request.user.id, puntaje]); response.status(201).json({ ok: true }); }
+  try {
+    const scoreColumn = await getRankingScoreColumn();
+    await pool.query(
+      `INSERT INTO ranking (usuario_id, ${scoreColumn}) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE ${scoreColumn} = GREATEST(${scoreColumn}, VALUES(${scoreColumn}))`,
+      [request.user.id, puntaje]
+    );
+    response.status(201).json({ ok: true });
+  }
   catch (error) {
     console.error('Error al guardar el puntaje:', error);
     response.status(500).json({ error: 'No se pudo guardar el puntaje' });
@@ -86,11 +111,13 @@ app.get('/api/ranking', async (request, response) => {
   }
 
   try {
+    const scoreColumn = await getRankingScoreColumn();
     const [rows] = await pool.query(
-      `SELECT r.id, u.nombre, r.puntaje
+      `SELECT MIN(r.id) AS id, u.nombre, MAX(r.${scoreColumn}) AS puntaje
        FROM ranking r
        INNER JOIN usuarios u ON u.id = r.usuario_id
-       ORDER BY r.puntaje DESC, r.id ASC
+       GROUP BY u.id, u.nombre
+       ORDER BY puntaje DESC, id ASC
        LIMIT ? OFFSET ?`,
       [limit, offset]
     );
