@@ -236,24 +236,26 @@ useEffect(() => {
   }, [difficultyLevel]);
 
   useEffect(() => {
-    if (!gameOver || scoreSubmissionStarted.current) return;
-    scoreSubmissionStarted.current = true;
+  if (!gameOver || scoreSubmissionStarted.current) return;
+  scoreSubmissionStarted.current = true;
 
-    const saveScore = async () => {
-      setScoreSaveStatus('saving');
-      setScoreSaveError('');
-      try {
-        await submitScore(score);
-        setScoreSaveStatus('saved');
-      } catch (error) {
-        console.warn('No se pudo guardar el puntaje:', error.message);
-        setScoreSaveError(error.message);
-        setScoreSaveStatus('error');
-      }
-    };
+  const saveScore = async () => {
+    setScoreSaveStatus('saving');
+    setScoreSaveError('');
 
-    saveScore();
-  }, [gameOver, score]);
+    try {
+      await submitScore(score);
+      setScoreSaveStatus('saved');
+    } catch (error) {
+      const message = error?.message || 'No se pudo guardar el puntaje';
+      console.warn('No se pudo guardar el puntaje:', message);
+      setScoreSaveError(message);
+      setScoreSaveStatus('error');
+    }
+  };
+
+  saveScore();
+}, [gameOver, score]);
 
   const handleHit = id => {
     if (!activePlates.current.delete(id)) return;
@@ -393,7 +395,15 @@ useEffect(() => {
         <View style={styles.gameOverOverlay}>
           <Text style={styles.gameOverText}>PERDISTE</Text>
           <Text style={styles.finalScore}>Puntaje: {score}</Text>
-          
+          {scoreSaveStatus === 'saving' && (
+  <Text style={styles.scoreSaveMessage}>Guardando puntaje...</Text>
+)}
+{scoreSaveStatus === 'saved' && (
+  <Text style={styles.scoreSaveMessage}>Puntaje guardado</Text>
+)}
+{scoreSaveStatus === 'error' && (
+  <Text style={styles.scoreSaveError}>{scoreSaveError}</Text>
+)}
           <View style={styles.gameOverActions}>
             <Pressable style={styles.gameOverButton} onPress={() => navigation.replace('Juego')}>
               <Text style={styles.gameOverButtonText}>Reintentar</Text>
