@@ -44,3 +44,21 @@ export const getRanking = (offset = 0, limit = 20) => request(
 );
 
 export const getWeather = () => request('/api/weather');
+
+const authHeaders = async () => {
+  const session = JSON.parse(await AsyncStorage.getItem('session') || 'null');
+  if (!session?.token) throw new Error('La sesion no es valida.');
+  return { Authorization: `Bearer ${session.token}` };
+};
+
+export const registerPushToken = async token => request('/api/push-token', {
+  method: 'POST',
+  headers: await authHeaders(),
+  body: JSON.stringify({ token }),
+});
+
+export const unregisterPushToken = async token => request('/api/push-token', {
+  method: 'DELETE',
+  headers: await authHeaders(),
+  body: JSON.stringify({ token }),
+});

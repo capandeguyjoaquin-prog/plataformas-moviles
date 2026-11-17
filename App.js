@@ -8,11 +8,22 @@ import LoginScreen from './src/screens/LoginScreen';
 import HomeScreen from './src/screens/HomeScreen';
 import GameScreen from './src/screens/GameScreen';
 import RankingScreen from './src/screens/RankingScreen';
+import { setupPushNotifications, removePushToken } from './src/services/notifications';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   const [session, setSession] = React.useState(null);
+
+  React.useEffect(() => {
+    if (!session) return;
+    setupPushNotifications().catch(error => console.log('Notificaciones no disponibles:', error.message));
+  }, [session]);
+
+  const handleLogout = async () => {
+    try { await removePushToken(); } catch {}
+    setSession(null);
+  };
 
   if (!session) {
     return <LoginScreen onLogin={setSession} />;
@@ -22,7 +33,7 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Inicio" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Inicio">
-          {props => <HomeScreen {...props} user={session.user} onLogout={() => setSession(null)} />}
+          {props => <HomeScreen {...props} user={session.user} onLogout={handleLogout} />}
         </Stack.Screen>
         <Stack.Screen name="Juego" component={GameScreen} options={{ headerShown: false }} />
         <Stack.Screen name="Ranking" component={RankingScreen} options={{ headerShown: false }} />

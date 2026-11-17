@@ -53,6 +53,55 @@ app.get('/api/weather', async (_request, response) => {
   }
 });
 
+const isExpoToken = token => typeof token === 'string' && /^Expo(nent)?PushToken\[.+\]$/.test(token);
+
+// Envia notificaciones a traves del servicio de Expo y limpia los tokens que ya no existen.
+async function sendPush(messages) {
+  for (let i = 0; i < messages.length; i += 100) {
+    const chunk = messages.slice(i, i + 100);
+    try {
+      const res = await fetch('https://exp.host/--/api/v2/push/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(chunk),
+      });
+      const body = await res.json();
+      const tickets = body.data || [];
+      const dead = chunk
+        .filter((_, idx) => tickets[idx]?.status === 'error' && tickets[idx]?.details?.error === 'DeviceNotRegistered')
+        .map(message => message.to);
+      if (dead.length) await pool.query('DELETE FROM push_tokens WHERE token = ANY($1)', [dead]);
+    } catch (error) {
+      console.error('Error al enviar notificaciones push:', error);
+    }
+  }
+}
+
+// Avisa a quienes tenian mas puntaje que tu record anterior y ahora quedaron por debajo del nuevo.
+async function notifySurpassed(user, anterior, nuevo) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT t.token, r.puntaje
+       FROM ranking r
+       INNER JOIN push_tokens t ON t.usuario_id = r.usuario_id
+       WHERE r.usuario_id <> $1 AND r.puntaje > $2 AND r.puntaje < $3`,
+      [user.id, anterior, nuevo]
+    );
+    if (!rows.length) return;
+    await sendPush(rows.map(row => ({
+      to: row.token,
+      sound: 'default',
+      channelId: 'default',
+      priority: 'high',
+      title: '¡Te superaron en el ranking!',
+      body: `${user.nombre} hizo ${nuevo} puntos y te pasó. Tu mejor puntaje: ${row.puntaje}.`,
+      data: { tipo: 'ranking_superado' },
+    })));
+  } catch (error) {
+    console.error('Error al notificar superados:', error);
+  }
+}
+
 app.post('/api/auth/register', async (request, response) => {
   try {
     const { nombre, password } = request.body;
@@ -87,15 +136,44 @@ app.post('/api/ranking', auth, async (request, response) => {
   const puntaje = Number(request.body?.puntaje);
   if (!Number.isInteger(puntaje) || puntaje < 0) return response.status(400).json({ error: 'Puntaje invalido' });
   try {
+    const previo = await pool.query('SELECT puntaje FROM ranking WHERE usuario_id = $1', [request.user.id]);
+    const anterior = previo.rows[0]?.puntaje ?? 0;
     await pool.query(
       `INSERT INTO ranking (usuario_id, puntaje) VALUES ($1, $2)
        ON CONFLICT (usuario_id) DO UPDATE SET puntaje = GREATEST(ranking.puntaje, EXCLUDED.puntaje)`,
       [request.user.id, puntaje]
     );
     response.status(201).json({ ok: true });
+    if (puntaje > anterior) notifySurpassed(request.user, anterior, puntaje);
   } catch (error) {
     console.error('Error al guardar el puntaje:', error);
     response.status(500).json({ error: 'No se pudo guardar el puntaje' });
+  }
+});
+
+app.post('/api/push-token', auth, async (request, response) => {
+  const token = request.body?.token;
+  if (!isExpoToken(token)) return response.status(400).json({ error: 'Token invalido' });
+  try {
+    await pool.query(
+      `INSERT INTO push_tokens (token, usuario_id) VALUES ($1, $2)
+       ON CONFLICT (token) DO UPDATE SET usuario_id = EXCLUDED.usuario_id`,
+      [token, request.user.id]
+    );
+    response.json({ ok: true });
+  } catch (error) {
+    console.error('Error al guardar el token push:', error);
+    response.status(500).json({ error: 'No se pudo guardar el token' });
+  }
+});
+
+app.delete('/api/push-token', auth, async (request, response) => {
+  try {
+    await pool.query('DELETE FROM push_tokens WHERE token = $1 AND usuario_id = $2', [request.body?.token, request.user.id]);
+    response.json({ ok: true });
+  } catch (error) {
+    console.error('Error al borrar el token push:', error);
+    response.status(500).json({ error: 'No se pudo borrar el token' });
   }
 });
 

@@ -16,7 +16,16 @@ CREATE TABLE IF NOT EXISTS ranking (
 
 CREATE INDEX IF NOT EXISTS idx_ranking_puntaje ON ranking (puntaje DESC, id);
 
+CREATE TABLE IF NOT EXISTS push_tokens (
+    token      TEXT PRIMARY KEY,
+    usuario_id INT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+    creado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_push_tokens_usuario ON push_tokens (usuario_id);
+
 -- Seguridad: Supabase expone las tablas por su API REST con la anon key.
 -- Activar RLS sin politicas bloquea ese acceso (tu backend conecta directo y no se ve afectado).
 ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ranking  ENABLE ROW LEVEL SECURITY;
+ALTER TABLE push_tokens ENABLE ROW LEVEL SECURITY;
