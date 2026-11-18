@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ImageBackground, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { login, register, saveSession } from '../services/api';
+import { login, register, saveSession, wakeServer } from '../services/api';
 
 export default function LoginScreen({ onLogin }) {
   const [nombre, setNombre] = useState('');
@@ -8,6 +8,8 @@ export default function LoginScreen({ onLogin }) {
   const [isRegistering, setIsRegistering] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => { wakeServer(); }, []);
 
   const handleSubmit = async () => {
     if (!nombre.trim() || password.length < 6) {
@@ -32,9 +34,10 @@ export default function LoginScreen({ onLogin }) {
       <View style={styles.panel}>
         <Text style={styles.title}>Plataformas moviles</Text>
         <Text style={styles.subtitle}>{isRegistering ? 'Crear cuenta' : 'Iniciar sesion'}</Text>
-        <TextInput style={styles.input} placeholder="Nombre de usuario" value={nombre} onChangeText={setNombre} autoCapitalize="words" />
-        <TextInput style={styles.input} placeholder="Contrasena" value={password} onChangeText={setPassword} secureTextEntry />
+        <TextInput style={styles.input} placeholder="Nombre de usuario" placeholderTextColor="#888" value={nombre} onChangeText={setNombre} autoCapitalize="words" />
+        <TextInput style={styles.input} placeholder="Contrasena" placeholderTextColor="#888" value={password} onChangeText={setPassword} secureTextEntry />
         {!!error && <Text style={styles.error}>{error}</Text>}
+        {loading && <Text style={styles.hint}>La primera vez puede tardar hasta 1 minuto en conectar.</Text>}
         <Pressable style={styles.button} onPress={handleSubmit} disabled={loading}>
           <Text style={styles.buttonText}>{loading ? 'Conectando...' : isRegistering ? 'Registrarme' : 'Entrar'}</Text>
         </Pressable>
@@ -51,9 +54,10 @@ const styles = StyleSheet.create({
   panel: { width: '100%', maxWidth: 380, padding: 24, borderRadius: 16, backgroundColor: 'rgba(20, 15, 10, 0.86)' },
   title: { color: '#f1aa45', fontSize: 28, fontWeight: 'bold', textAlign: 'center', marginBottom: 8 },
   subtitle: { color: '#fff', fontSize: 20, textAlign: 'center', marginBottom: 20 },
-  input: { backgroundColor: '#fff', borderRadius: 8, padding: 13, marginBottom: 12, fontSize: 16 },
+  input: { backgroundColor: '#fff', color: '#222', borderRadius: 8, padding: 13, marginBottom: 12, fontSize: 16 },
   button: { backgroundColor: '#e89136', borderRadius: 8, padding: 14, alignItems: 'center', marginTop: 4 },
   buttonText: { color: '#fff', fontSize: 17, fontWeight: 'bold' },
   switchText: { color: '#f1aa45', textAlign: 'center', marginTop: 18, fontSize: 15 },
+  hint: { color: '#f1d9b5', marginBottom: 10, textAlign: 'center', fontSize: 13 },
   error: { color: '#ffb3a7', marginBottom: 10, textAlign: 'center' },
 });
